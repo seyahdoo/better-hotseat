@@ -217,7 +217,7 @@ void RenderLocalRecordsMenu(CTrackMania@ app){
 	int windowHeight = 430;
 	UI::SetNextWindowSize(windowWidth, windowHeight);
 	UI::SetNextWindowPos(Draw::GetWidth() - windowWidth, 0);
-	UI::PushStyleColor(UI::Col::FrameBg, UI::InputColor4("bg", vec4(0,0,0,0)));
+	UI::PushStyleColor(UI::Col::WindowBg, UI::InputColor4("local records background", vec4(0,0,0,0)));
 	int windowparams = UI::WindowFlags::NoTitleBar | UI::WindowFlags::NoResize | UI::WindowFlags::NoCollapse;
 	UI::Begin("Better Hotseat - Local Records", localRecordsWindowVisible, windowparams);
 	
@@ -251,16 +251,11 @@ void RenderLocalRecordsMenu(CTrackMania@ app){
 	if (lTimes.Length < top) top = lTimes.Length;
 	for (uint k = 0; k<top; k++) {
 		UI::PushFont(font);
-		if (lIndices.Find(k)>= 0) {
-			UI::Text("\\$F30" + lTimesString[k] + " - " + lNames[k]);
-		} else {
-			UI::Text(lTimesString[k] + " - " + lNames[k]);
-		}
+		UI::Text(lTimesString[k] + " - " + lNames[k]);
 		UI::PopFont();
 	}
-	
-	UI::PopStyleColor(1);
 	UI::End();
+	UI::PopStyleColor();
 }
 
 void RenderInGameControls(CTrackMania@ app){
@@ -302,7 +297,7 @@ void RenderQuitButtonWarning(CTrackMania@ app){
 	int windowparams = UI::WindowFlags::NoTitleBar | UI::WindowFlags::NoResize | UI::WindowFlags::NoCollapse;
 	UI::Begin("DontLeave", windowparams);
 	UI::PushFont(fontLB);
-	UI::Text("\\$F30 Restart or Quit through the provided buttons on the right, Leave this menu first");
+	UI::Text("\\$F30 Restart or Quit through the provided buttons on the bottom right, Leave this menu first");
 	UI::PopFont();
 	UI::End();
 }
