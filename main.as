@@ -204,7 +204,7 @@ void StartHotseatButton(CTrackMania@ app){
 		shownMapNR += 1;
 		print(mapNR);
 		setupWindowVisible = false;
-		localRecordsWindowVisible = false;
+		localRecordsWindowVisible = true;
 		inGameControlsVisible = true;
 	} else if ((not Permissions::PlayHotSeat()) or (not Permissions::PlayLocalMap())) {
 		print("Insufficient rights!");
@@ -242,7 +242,7 @@ void RenderLocalRecordsMenu(CTrackMania@ app){
 				}
 			}
 			UpdateLocal();
-			//saveRecords();
+			saveRecords();
 		}
 		
 	}
@@ -358,6 +358,7 @@ void loadRecords() {
 }
 
 void saveRecords() {
+	print(recordMap);
 	string[] splitline = recordMap.Split("\\");
 	string filename = scriptOutput + "\\Records\\" + splitline[splitline.Length-1].Split(".")[0] + ".txt";
 	print("Saving records to file: " + filename);
