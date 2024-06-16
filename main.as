@@ -1,6 +1,6 @@
 //Variables
-bool window1Visible = false;
-bool window2Visible = false;
+bool setupWindowVisible = false;
+bool localRecordsWindowVisible = false;
 uint players = 2;
 uint multiplier = 3;
 uint mapNR = 0;
@@ -65,7 +65,7 @@ string player8 = "White";
 void Main() {
 	@font = UI::LoadFont("DroidSans.ttf",30);
 	@fontLB = UI::LoadFont("DroidSans.ttf",20);
-	@fontStart = UI::LoadFont("DroidSans.ttf",70);
+	@fontStart = UI::LoadFont("DroidSans.ttf",51);
 	FixFolders();
 }
 
@@ -77,210 +77,206 @@ void RenderMenu() {
 		for (uint i = 0; i < settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist.Length; i++) {
 			maps.InsertLast(settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist[i].Name);
 		}
-        window1Visible = true;
-		
+        setupWindowVisible = !setupWindowVisible;
     }
 }
 
 void Render() {
-
-    if (window1Visible) {
-        UI::SetNextWindowSize(300, 480);
-		UI::SetNextWindowPos(winX - 300,47);
-        UI::Begin("Better Hotseat by Trackmaniac 420", window1Visible);
-		CTrackMania@ app = cast<CTrackMania>(GetApp());
-		auto playground = app.PlaygroundScript;
-		if (playground !is null) {
-			UI::PushFont(font);
-			UI::Text("\\$F30" + "EXIT MAP FIRST");
-			UI::PopFont();
-		} else {
-			UI::PushFont(fontLB);
-			UI::SetNextItemWidth(120);
-			players = UI::InputInt("Number of players", players);
-			if (players < 2) players = 2;
-			if (players > 8) players = 8;
-			UI::SetNextItemWidth(120);
-			multiplier = UI::InputInt("Time multiplier", multiplier);
-			if (multiplier < 1) multiplier = 1;
-			
-			CGameMatchSettingsManagerScript@ settings = cast<CGameMatchSettingsManagerScript>(app.MenuManager.MenuCustom_CurrentManiaApp.MatchSettingsManager);
-			if (settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist.Length != maps.Length) {
-				maps = {};
-				for (uint i = 0; i < settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist.Length; i++) {
-					maps.InsertLast(settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist[i].Name);
-				}
-			}
-			UI::SetNextItemWidth(120);
-			shownMapNR = UI::InputInt("Selected Map", shownMapNR);
-			if (shownMapNR < 1) shownMapNR = maps.Length;
-			if (shownMapNR > maps.Length) shownMapNR = 1;
-			mapNR = shownMapNR-1;
-			
-			oneShot = UI::Checkbox("Oneshot gamemode", oneShot);
-			
-			
-			UI::PopFont();
-			for (uint i = 0; i < Names.Length; i++) {
-				UI::PushFont(fontLB);
-				UI::SetNextItemWidth(120);
-				if (i < players) {	
-					Names[i] = UI::InputText("\\$3F3" + "Player " + (i+1), Names[i]);
-				} else { 
-					Names[i] = UI::InputText("\\$F30" + "Player " + (i+1), Names[i]);
-				}
-				UI::PopFont();
-				ButtonControl(i);
-			}
-			saveNames();
-			
-		}
-
-        UI::End();
-		
-		UI::SetNextWindowSize(380, 100);
-		UI::SetNextWindowPos(winX - 420,900);
-		int windowparams = UI::WindowFlags::NoTitleBar | UI::WindowFlags::NoResize | UI::WindowFlags::NoCollapse;
-        UI::Begin("BHB", windowparams);
-		UI::PushFont(fontStart);
-		if (Permissions::PlayHotSeat() && Permissions::PlayLocalMap() && (UI::Button("Start Hotseat") or (changingMap && app.ManiaTitleControlScriptAPI.IsReady))) {
-			
-			if (maps.Length == 0) {
-				print("you have to select maps in the local network tab before starting! See Plugin description");
-				return;
-			}
-			is_playing = true;
-			changingMap = false;
-			if (oneShot) multiplier=0;
-			IO::File file(scriptOutput + "\\Hotseat.Script.txt");
-			IO::FileSource file2("GhostHotseatTest.Script.txt");
-			file.Open(IO::FileMode::Write);
-			// REMOVE FROM OP FILE
-			//file2.Open(IO::FileMode::Read);
-			uint i = 0;
-			while (!file2.EOF()) {
-				string line = file2.ReadLine();
-				if (line.StartsWith("#Setting")) {
-					if (i == 0) line = line.Replace("xxxxx", "" + multiplier);
-					if (i == 1) line = line.Replace("xxxxx", "" + players);
-					for (uint k = 0; k < 8; k++) {
-						if (i == 2+k) line = line.Replace("xxxxx", Names[k]);
-					}
-					i += 1;
-				}
-				file.Write(line + "\n");
-			}
-			file.Close();
-			// REMOVE FROM OP FILE
-			//file2.Close();
-			CGameManiaTitleControlScriptAPI@ controlScript = cast<CGameManiaTitleControlScriptAPI>(app.ManiaTitleControlScriptAPI);
-			print(mapNR + " " + maps.Length);
-			controlScript.PlayMap(maps[mapNR],"Modes\\TrackMania\\Hotseat.Script.txt","");
-			recordMap = maps[mapNR];
-			loadRecords();
-			lTimes = rTimes;
-			lNames = rNames;
-			lTimesString  = rTimesString;
-			shownMapNR += 1;
-			print(mapNR);
-			window1Visible = !window1Visible;
-			window2Visible = !window2Visible;
-		} else if ((not Permissions::PlayHotSeat()) or (not Permissions::PlayLocalMap())) {
-			print("Insufficient rights!");
-		}
-		UI::PopFont();
-		UI::End();
-		
-		
-    }
 	CTrackMania@ app = cast<CTrackMania>(GetApp());
-	auto playgroundC = app.CurrentPlayground;
-	if (playgroundC is null || playgroundC.Interface is null || not UI::IsGameUIVisible()) {
+    if (setupWindowVisible) {
+        RenderSetupMenu(app);
+    }
+	if (app.CurrentPlayground is null || app.CurrentPlayground.Interface is null || not UI::IsGameUIVisible()) {
 		return;
 	}
-	
-	
-	if (window2Visible) {
-        UI::SetNextWindowSize(300, 430);
-		UI::SetNextWindowPos(winX - 300,200,UI::Cond::Always);
-        UI::Begin("Better Hotseat - Local Records", window2Visible);
+	if (localRecordsWindowVisible) {
+        RenderLocalRecordsMenu(app);
+    }
+	if(app.ManiaPlanetScriptAPI.ActiveContext_InGameMenuDisplayed and is_playing) {
+		RenderQuitButtonWarning(app);
+	}
+}
+
+void RenderSetupMenu(CTrackMania@ app){
+	UI::SetNextWindowSize(295, 505);
+	UI::SetNextWindowPos(winX - 300,47);
+	UI::Begin("Better Hotseat", setupWindowVisible);
+	auto playground = app.PlaygroundScript;
+	if (playground !is null) {
+		UI::PushFont(font);
+		UI::Text("\\$F30" + "EXIT MAP FIRST");
+		UI::PopFont();
+	} else {
+		UI::PushFont(fontLB);
+		UI::SetNextItemWidth(120);
+		players = UI::InputInt("Number of players", players);
+		if (players < 2) players = 2;
+		if (players > 8) players = 8;
+		UI::SetNextItemWidth(120);
+		multiplier = UI::InputInt("Time multiplier", multiplier);
+		if (multiplier < 1) multiplier = 1;
 		
-		auto playground = app.PlaygroundScript;
-		
-		// looking for new records/improvements
-		if(playground !is null) {
-			was_ingame = true;
-			auto manager = playground.DataFileMgr;
-			if (manager is null) return;
-			auto ghosts = manager.Ghosts;
-			uint ghostslength = ghosts.Length;
-			if (ghostslength != lastGhosts) {
-				lastGhosts = ghostslength;
-				// A new time was driven
-				bool oneUpdated = false;
-				for (uint k = 0; k < ghostslength; k++) {
-					for (uint j = 0; j < players; j++) {
-						if (Names[j].Contains(ghosts[k].Nickname) && (Times[j] == 0 || Times[j] > ghosts[k].Result.Time)) {
-							Times[j] = ghosts[k].Result.Time;
-						}
-					}
-				}
-				UpdateLocal();
-				saveRecords();
+		CGameMatchSettingsManagerScript@ settings = cast<CGameMatchSettingsManagerScript>(app.MenuManager.MenuCustom_CurrentManiaApp.MatchSettingsManager);
+		if (settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist.Length != maps.Length) {
+			maps = {};
+			for (uint i = 0; i < settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist.Length; i++) {
+				maps.InsertLast(settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist[i].Name);
 			}
-			
 		}
+		UI::SetNextItemWidth(120);
+		shownMapNR = UI::InputInt("Selected Map", shownMapNR);
+		if (shownMapNR < 1) shownMapNR = maps.Length;
+		if (shownMapNR > maps.Length) shownMapNR = 1;
+		mapNR = shownMapNR-1;
 		
+		oneShot = UI::Checkbox("Oneshot gamemode", oneShot);
 		
-		
-		if ((not app.ManiaPlanetScriptAPI.ActiveContext_InGameMenuDisplayed) and UI::Button("Next Map")) {
-			window2Visible = !window2Visible;
-			window1Visible = !window1Visible;
-			app.BackToMainMenu();
-			changingMap = true;
-		}
-		UI::SameLine();
-		if ((not app.ManiaPlanetScriptAPI.ActiveContext_InGameMenuDisplayed) and UI::Button("Restart Current Map")) {
-			shownMapNR -= 1;
-			window2Visible = !window2Visible;
-			window1Visible = !window1Visible;
-			app.BackToMainMenu();
-			changingMap = true;
-		}
-		UI::SameLine();
-		if ((not app.ManiaPlanetScriptAPI.ActiveContext_InGameMenuDisplayed) and UI::Button("Quit")) {
-			window2Visible = !window2Visible;
-			window1Visible = !window1Visible;
-			app.BackToMainMenu();
-			is_playing = false;
-		}
-		
-		uint top = 10;
-		if (lTimes.Length < top) top = lTimes.Length;
-		for (uint k = 0; k<top; k++) {
-			UI::PushFont(font);
-			if (lIndices.Find(k)>= 0) {
-				UI::Text("\\$F30" + lTimesString[k] + " - " + lNames[k]);
-			} else {
-				UI::Text(lTimesString[k] + " - " + lNames[k]);
+		UI::PopFont();
+		for (uint i = 0; i < Names.Length; i++) {
+			UI::PushFont(fontLB);
+			UI::SetNextItemWidth(120);
+			if (i < players) {	
+				Names[i] = UI::InputText("\\$3F3" + "Player " + (i+1), Names[i]);
+			} else { 
+				Names[i] = UI::InputText("\\$F30" + "Player " + (i+1), Names[i]);
 			}
 			UI::PopFont();
+			ButtonControl(i);
+		}
+		saveNames();
+	}
+	StartHotseatButton(app);
+	UI::End();
+}
+
+void StartHotseatButton(CTrackMania@ app){
+	UI::PushFont(fontStart);
+	if (Permissions::PlayHotSeat() && Permissions::PlayLocalMap() && (UI::Button("Start Hotseat") or (changingMap && app.ManiaTitleControlScriptAPI.IsReady))) {
+		if (maps.Length == 0) {
+			print("you have to select maps in the local network tab before starting! See Plugin description");
+			return;
+		}
+		is_playing = true;
+		changingMap = false;
+		if (oneShot) multiplier=0;
+		IO::File file(scriptOutput + "\\Hotseat.Script.txt");
+		IO::FileSource file2("GhostHotseatTest.Script.txt");
+		file.Open(IO::FileMode::Write);
+		// REMOVE FROM OP FILE
+		//file2.Open(IO::FileMode::Read);
+		uint i = 0;
+		while (!file2.EOF()) {
+			string line = file2.ReadLine();
+			if (line.StartsWith("#Setting")) {
+				if (i == 0) line = line.Replace("xxxxx", "" + multiplier);
+				if (i == 1) line = line.Replace("xxxxx", "" + players);
+				for (uint k = 0; k < 8; k++) {
+					if (i == 2+k) line = line.Replace("xxxxx", Names[k]);
+				}
+				i += 1;
+			}
+			file.Write(line + "\n");
+		}
+		file.Close();
+		// REMOVE FROM OP FILE
+		//file2.Close();
+		CGameManiaTitleControlScriptAPI@ controlScript = cast<CGameManiaTitleControlScriptAPI>(app.ManiaTitleControlScriptAPI);
+		print(mapNR + " " + maps.Length);
+		controlScript.PlayMap(maps[mapNR],"Modes\\TrackMania\\Hotseat.Script.txt","");
+		recordMap = maps[mapNR];
+		loadRecords();
+		lTimes = rTimes;
+		lNames = rNames;
+		lTimesString  = rTimesString;
+		shownMapNR += 1;
+		print(mapNR);
+		setupWindowVisible = !setupWindowVisible;
+		localRecordsWindowVisible = !localRecordsWindowVisible;
+	} else if ((not Permissions::PlayHotSeat()) or (not Permissions::PlayLocalMap())) {
+		print("Insufficient rights!");
+	}
+	UI::PopFont();
+}
+
+void RenderLocalRecordsMenu(CTrackMania@ app){
+	UI::SetNextWindowSize(300, 430);
+	UI::SetNextWindowPos(winX - 300, 200);
+	UI::Begin("Better Hotseat - Local Records", localRecordsWindowVisible);
+	
+	auto playground = app.PlaygroundScript;
+	
+	// looking for new records/improvements
+	if(playground !is null) {
+		was_ingame = true;
+		auto manager = playground.DataFileMgr;
+		if (manager is null) return;
+		auto ghosts = manager.Ghosts;
+		uint ghostslength = ghosts.Length;
+		if (ghostslength != lastGhosts) {
+			lastGhosts = ghostslength;
+			// A new time was driven
+			bool oneUpdated = false;
+			for (uint k = 0; k < ghostslength; k++) {
+				for (uint j = 0; j < players; j++) {
+					if (Names[j].Contains(ghosts[k].Nickname) && (Times[j] == 0 || Times[j] > ghosts[k].Result.Time)) {
+						Times[j] = ghosts[k].Result.Time;
+					}
+				}
+			}
+			UpdateLocal();
+			saveRecords();
 		}
 		
-        UI::End();
-    }
-	
-	if(app.ManiaPlanetScriptAPI.ActiveContext_InGameMenuDisplayed and is_playing) {
-		UI::SetNextWindowSize(800, 300);
-		UI::SetNextWindowPos(winX/2 - 400,winY/2);
-		int windowparams = UI::WindowFlags::NoTitleBar | UI::WindowFlags::NoResize | UI::WindowFlags::NoCollapse;
-        UI::Begin("DontLeave", windowparams);
-		UI::PushFont(fontLB);
-		UI::Text("\\$F30 Restart or Quit through the provided buttons on the right, Leave this menu first");
-		UI::PopFont();
-		UI::End();
 	}
 	
+	
+	
+	if ((not app.ManiaPlanetScriptAPI.ActiveContext_InGameMenuDisplayed) and UI::Button("Next Map")) {
+		localRecordsWindowVisible = !localRecordsWindowVisible;
+		setupWindowVisible = !setupWindowVisible;
+		app.BackToMainMenu();
+		changingMap = true;
+	}
+	UI::SameLine();
+	if ((not app.ManiaPlanetScriptAPI.ActiveContext_InGameMenuDisplayed) and UI::Button("Restart Current Map")) {
+		shownMapNR -= 1;
+		localRecordsWindowVisible = !localRecordsWindowVisible;
+		setupWindowVisible = !setupWindowVisible;
+		app.BackToMainMenu();
+		changingMap = true;
+	}
+	UI::SameLine();
+	if ((not app.ManiaPlanetScriptAPI.ActiveContext_InGameMenuDisplayed) and UI::Button("Quit")) {
+		localRecordsWindowVisible = !localRecordsWindowVisible;
+		setupWindowVisible = !setupWindowVisible;
+		app.BackToMainMenu();
+		is_playing = false;
+	}
+	
+	uint top = 10;
+	if (lTimes.Length < top) top = lTimes.Length;
+	for (uint k = 0; k<top; k++) {
+		UI::PushFont(font);
+		if (lIndices.Find(k)>= 0) {
+			UI::Text("\\$F30" + lTimesString[k] + " - " + lNames[k]);
+		} else {
+			UI::Text(lTimesString[k] + " - " + lNames[k]);
+		}
+		UI::PopFont();
+	}
+	
+	UI::End();
+}
+
+void RenderQuitButtonWarning(CTrackMania@ app){
+	UI::SetNextWindowSize(800, 300);
+	UI::SetNextWindowPos(winX/2 - 400,winY/2);
+	int windowparams = UI::WindowFlags::NoTitleBar | UI::WindowFlags::NoResize | UI::WindowFlags::NoCollapse;
+	UI::Begin("DontLeave", windowparams);
+	UI::PushFont(fontLB);
+	UI::Text("\\$F30 Restart or Quit through the provided buttons on the right, Leave this menu first");
+	UI::PopFont();
+	UI::End();
 }
 
 void ButtonControl(uint i) {
