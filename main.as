@@ -1,7 +1,7 @@
 //Variables
 bool setupWindowVisible = false;
-bool localRecordsWindowVisible = true;
-bool inGameControlsVisible = true;
+bool localRecordsWindowVisible = false;
+bool inGameControlsVisible = false;
 uint players = 2;
 uint multiplier = 3;
 uint mapNR = 0;
