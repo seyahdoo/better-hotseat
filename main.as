@@ -1,6 +1,7 @@
 //Variables
 bool setupWindowVisible = false;
-bool localRecordsWindowVisible = false;
+bool localRecordsWindowVisible = true;
+bool inGameControlsVisible = true;
 uint players = 2;
 uint multiplier = 3;
 uint mapNR = 0;
@@ -70,15 +71,24 @@ void Main() {
 }
 
 void RenderMenu() {
-	if (UI::MenuItem("Better Hotseat")) {
-		loadNames();
-		CTrackMania@ app = cast<CTrackMania>(GetApp());
-		CGameMatchSettingsManagerScript@ settings = cast<CGameMatchSettingsManagerScript>(app.MenuManager.MenuCustom_CurrentManiaApp.MatchSettingsManager);
-		for (uint i = 0; i < settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist.Length; i++) {
-			maps.InsertLast(settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist[i].Name);
+	if (UI::BeginMenu("Better Hotseat")) {
+		if (UI::MenuItem("Setup Window")) {
+			loadNames();
+			CTrackMania@ app = cast<CTrackMania>(GetApp());
+			CGameMatchSettingsManagerScript@ settings = cast<CGameMatchSettingsManagerScript>(app.MenuManager.MenuCustom_CurrentManiaApp.MatchSettingsManager);
+			for (uint i = 0; i < settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist.Length; i++) {
+				maps.InsertLast(settings.MatchSettings[settings.MatchSettings.Length - 1].Playlist[i].Name);
+			}
+			setupWindowVisible = !setupWindowVisible;
 		}
-        setupWindowVisible = !setupWindowVisible;
-    }
+		if (UI::MenuItem("Local Records")) {
+			localRecordsWindowVisible = !localRecordsWindowVisible;
+		}
+		if (UI::MenuItem("In Game Controls")) {
+			inGameControlsVisible = !inGameControlsVisible;
+		}
+		UI::EndMenu(); 
+	}
 }
 
 void Render() {
@@ -91,6 +101,9 @@ void Render() {
 	}
 	if (localRecordsWindowVisible) {
         RenderLocalRecordsMenu(app);
+    }
+	if (inGameControlsVisible) {
+        RenderInGameControls(app);
     }
 	if(app.ManiaPlanetScriptAPI.ActiveContext_InGameMenuDisplayed and is_playing) {
 		RenderQuitButtonWarning(app);
@@ -190,8 +203,9 @@ void StartHotseatButton(CTrackMania@ app){
 		lTimesString  = rTimesString;
 		shownMapNR += 1;
 		print(mapNR);
-		setupWindowVisible = !setupWindowVisible;
-		localRecordsWindowVisible = !localRecordsWindowVisible;
+		setupWindowVisible = false;
+		localRecordsWindowVisible = false;
+		inGameControlsVisible = true;
 	} else if ((not Permissions::PlayHotSeat()) or (not Permissions::PlayLocalMap())) {
 		print("Insufficient rights!");
 	}
@@ -199,9 +213,13 @@ void StartHotseatButton(CTrackMania@ app){
 }
 
 void RenderLocalRecordsMenu(CTrackMania@ app){
-	UI::SetNextWindowSize(300, 430);
-	UI::SetNextWindowPos(winX - 300, 200);
-	UI::Begin("Better Hotseat - Local Records", localRecordsWindowVisible);
+	int windowWidth = 300;
+	int windowHeight = 430;
+	UI::SetNextWindowSize(windowWidth, windowHeight);
+	UI::SetNextWindowPos(Draw::GetWidth() - windowWidth, 0);
+	UI::PushStyleColor(UI::Col::FrameBg, UI::InputColor4("bg", vec4(0,0,0,0)));
+	int windowparams = UI::WindowFlags::NoTitleBar | UI::WindowFlags::NoResize | UI::WindowFlags::NoCollapse;
+	UI::Begin("Better Hotseat - Local Records", localRecordsWindowVisible, windowparams);
 	
 	auto playground = app.PlaygroundScript;
 	
@@ -224,13 +242,35 @@ void RenderLocalRecordsMenu(CTrackMania@ app){
 				}
 			}
 			UpdateLocal();
-			saveRecords();
+			//saveRecords();
 		}
 		
 	}
 	
+	uint top = 10;
+	if (lTimes.Length < top) top = lTimes.Length;
+	for (uint k = 0; k<top; k++) {
+		UI::PushFont(font);
+		if (lIndices.Find(k)>= 0) {
+			UI::Text("\\$F30" + lTimesString[k] + " - " + lNames[k]);
+		} else {
+			UI::Text(lTimesString[k] + " - " + lNames[k]);
+		}
+		UI::PopFont();
+	}
 	
-	
+	UI::PopStyleColor(1);
+	UI::End();
+}
+
+void RenderInGameControls(CTrackMania@ app){
+	int windowWidth = 335;
+	int windowHeight = 40;
+	UI::SetNextWindowSize(windowWidth, windowHeight);
+	UI::SetNextWindowPos(Draw::GetWidth() - windowWidth, Draw::GetHeight() - windowHeight);
+	int windowparams = UI::WindowFlags::NoTitleBar | UI::WindowFlags::NoResize | UI::WindowFlags::NoCollapse | UI::WindowFlags::NoScrollbar;
+	UI::Begin("InGameControls", inGameControlsVisible, windowparams);
+	UI::PushFont(fontLB);
 	if ((not app.ManiaPlanetScriptAPI.ActiveContext_InGameMenuDisplayed) and UI::Button("Next Map")) {
 		localRecordsWindowVisible = !localRecordsWindowVisible;
 		setupWindowVisible = !setupWindowVisible;
@@ -252,19 +292,7 @@ void RenderLocalRecordsMenu(CTrackMania@ app){
 		app.BackToMainMenu();
 		is_playing = false;
 	}
-	
-	uint top = 10;
-	if (lTimes.Length < top) top = lTimes.Length;
-	for (uint k = 0; k<top; k++) {
-		UI::PushFont(font);
-		if (lIndices.Find(k)>= 0) {
-			UI::Text("\\$F30" + lTimesString[k] + " - " + lNames[k]);
-		} else {
-			UI::Text(lTimesString[k] + " - " + lNames[k]);
-		}
-		UI::PopFont();
-	}
-	
+	UI::PopFont();
 	UI::End();
 }
 
